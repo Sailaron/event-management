@@ -23,7 +23,7 @@ Ilja Pozdejevs
 ### About application
  
 There are available next endpoints:  
-* /homepage/ - page with navigation menu  
+* / - homepage with navigation menu  
 * /events/ - page to see events by date filter, add new events and share link to specific event  
 * /events/{date} - page to see events on specific date, for example /events/2022-12-16  
 * /events/{date}/{event_id} - page to specific event, link can be received using button Share on /events/ page  
