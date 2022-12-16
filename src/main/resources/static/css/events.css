@@ -1,0 +1,40 @@
+.not-selected {
+    background: #5454548a;
+    border-color: gray;
+    color: white;
+    text-shadow: unset;
+}
+
+.panel-body button {
+    margin-right: 5px;
+}
+
+.center-elements {
+    align-items: center;
+    display: flex;
+}
+
+.center-elements > * {
+    margin: 0 auto;
+}
+
+.event-heading {
+    display: flex;
+    align-items: center;
+}
+
+.event-heading > h3 {
+    margin: 0 55px 0 0;
+    max-width: 60%;
+    overflow-wrap: anywhere;
+}
+
+.event-heading > button {
+    margin: 0 0 0 auto;
+}
+
+.link-shared {
+    background: #777777;
+    color: white;
+    text-shadow: 0 0 black;
+}

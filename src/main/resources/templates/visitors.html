@@ -1,0 +1,221 @@
+<html lang="en"><head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="description" content="Open Source application for simple event management">
+    <meta name="author" content="Ilja Pozdejevs">
+    <link rel="icon" href="/images/favicon.ico">
+
+    <title>Visitors</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/js/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/js/bootstrap/3.4.1/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/css/visitors.css" rel="stylesheet">
+    <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- Fixed navbar -->
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Event Management</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="/">Home</a></li>
+                <li class="active"><a href="">Visitors</a></li>
+                <li><a href="/events">Events</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container theme-showcase" role="main">
+
+    <!-- Main jumbotron for a primary marketing message or call to action -->
+    <div class="jumbotron">
+        <br>
+        <h3>Visitors list</h3>
+        <p>You can add new visitors here and see the list of them</p>
+
+        <div class="container">
+            <div class="d-flex flex-column" id="add-object-form">
+                <h4>New visitor</h4>
+                <label for="inputName" class="sr-only">Name</label>
+                <input type="text" id="inputName" class="form-control" placeholder="Name">
+                <label for="inputSurname" class="sr-only">Surname</label>
+                <input type="text" id="inputSurname" class="form-control" placeholder="Surname">
+            </div>
+            <div class="submit-container">
+                <button type="button" class="btn btn-success" onclick="saveVisitor()">+ Save</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="page-header">
+        <h3>Visitors</h3>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <table class="table table-striped">
+                <thead>
+                <tr id="object-fields">
+                    <th class="hidden">ID</th>
+                    <th>Name</th>
+                    <th>Surname</th>
+                    <th colspan="2"><b>Actions</b></th>
+                </tr>
+                </thead>
+                <tbody id="objects-list">
+
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jQuery/3.6.1/jquery.min.js"></script>
+<script src="/js/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script>
+    //Making GET request to load Visitors list
+    let token = "jWnZr4u7x!AD*G-JaNdRgUkXp2s5v8y";
+
+    function saveVisitor() {
+        // Getting data for new object
+        var addInputs = $("#add-object-form").find("input")
+        var addingData = "";
+        console.log(addInputs)
+        for (var i = 0; i < addInputs.length; i++) {
+            addingData += "&" + addInputs[i].placeholder.toLowerCase() + "=" + addInputs[i].value
+        }
+
+        // Sending prepared data for adding new object
+        $.ajax({
+            url: '/api/visitor/add',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + addingData,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+
+    }
+
+    function removeVisitor(visitorId) {
+        $.ajax({
+            url: '/api/visitor/remove',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + "&id=" + visitorId,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    function prepareVisitorEditing(visitorId) {
+        // Changing table row td objects to input fields for editing
+        var tableRow = $("#visitor-" + visitorId);
+        var fieldsInTableRow = tableRow.find("td");
+        console.log(fieldsInTableRow)
+        for (var i = 1; i < fieldsInTableRow.length - 2; i++) {  // without ID and Actions columns
+            console.log(fieldsInTableRow[i])
+            fieldsInTableRow[i].innerHTML = "<td><input type=\"text\" class=\"form-control\" placeholder=\"" + fieldsInTableRow[i].innerText + "\" value=\"" + fieldsInTableRow[i].innerText + "\"></td>";
+        }
+
+        // Changing Edit button to Save button
+        tableRow.find("button.btn-primary").addClass("hidden");
+        tableRow.find("button.btn-success").removeClass("hidden");
+    }
+
+    function editVisitor(visitorId) {
+        // Getting field names from table headers
+        var tableHeaders = $("#object-fields th");
+        var objectFields = tableHeaders.slice(1, tableHeaders.length - 1);
+
+        // Getting value from inputs in necessary table row
+        var tableRowInputs = $("#visitor-" + visitorId).find("input");
+        var editingData = "&id=" + visitorId;
+        for (i = 0; i < tableRowInputs.length; i++) {
+            console.log(tableRowInputs[i])
+            editingData += "&" + objectFields[i].innerText.toLowerCase() + "=" + tableRowInputs[i].value
+        }
+
+        // Sending prepared data for editing
+        $.ajax({
+            url: '/api/visitor/edit',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + editingData,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+
+    function loadAllObjectsToPage() {
+        $.ajax({
+            url: '/api/visitor/all',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token,
+            success: function (result) {
+                console.log(result)
+                let resultObjects = JSON.parse(result);
+                var resultHtml = "";
+                resultObjects.forEach(obj => {
+                    resultHtml += "<tr id='visitor-" + obj["id"] + "'>";
+                    resultHtml += "<td class='hidden'" + obj["id"] + "</td>";
+                    resultHtml += "<td>" + obj["name"] + "</td>";
+                    resultHtml += "<td>" + obj["surname"] + "</td>";
+                    resultHtml += "<td><button type=\"button\" onclick=\"prepareVisitorEditing(" + obj["id"] + ")\" class=\"btn btn-primary\">/ Edit</button>";
+                    resultHtml += "<button type=\"button\" onclick=\"editVisitor(" + obj["id"] + ")\" class=\"btn btn-success hidden\">/ Save</button></td>";
+                    resultHtml += "<td><button type=\"button\" onclick=\"removeVisitor(" + obj["id"] + ")\" class=\"btn btn-danger\">- Remove</button></td>";
+                    resultHtml += "</tr>";
+                })
+                console.log(resultObjects);
+                $("#objects-list").html(resultHtml);
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    loadAllObjectsToPage();
+</script>

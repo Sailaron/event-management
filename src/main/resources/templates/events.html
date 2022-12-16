@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Open Source application for simple event management">
+    <meta name="author" content="Ilja Pozdejevs">
+    <link rel="icon" href="/images/favicon.ico">
+
+    <title>Visitors</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/js/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/js/bootstrap/3.4.1/css/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/css/events.css" rel="stylesheet">
+    <link href="/css/main.css" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- Fixed navbar -->
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Event Management</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav">
+                <li><a href="/">Home</a></li>
+                <li><a href="/visitors">Visitors</a></li>
+                <li class="active"><a href="">Events</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container theme-showcase" role="main">
+
+    <div class="jumbotron">
+        <br>
+        <h3>Events list</h3>
+        <p>You can add new events here and see the list of them</p>
+
+        <div class="container">
+            <h4>Date</h4>
+            <input id="day-select" placeholder="yyyy-mm-dd" th:value="${calendar}" type="date" onchange="loadAllObjectsToPage()">
+        </div>
+        <br>
+
+        <div class="container">
+            <div class="d-flex flex-column" id="add-object-form">
+                <h4>New event</h4>
+                <label for="inputTitle" class="sr-only">Title</label>
+                <input type="text" id="inputTitle" class="form-control" placeholder="Title">
+                <label for="inputTime" class="sr-only">Time</label>
+                <input type="text" id="inputTime" class="form-control" placeholder="Time">
+            </div>
+            <div class="submit-container">
+                <button type="button" class="btn btn-success" onclick="saveEvent()">+ Save</button>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="page-header">
+        <h3>Events</h3>
+    </div>
+    <div id="load-events-panels">
+
+    </div>
+
+</div>
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/js/jQuery/3.6.1/jquery.min.js"></script>
+<script src="/js/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<script>
+    //Making GET request to load Visitors list
+    let token = "jWnZr4u7x!AD*G-JaNdRgUkXp2s5v8y";
+
+    function copyEventLinkToClipboard(elem, date, eventId) {
+        let linkToEvent = window.location.origin + "/events/" + date + "/" + eventId
+        navigator.clipboard.writeText(linkToEvent);
+        console.log("Link to event page is copied: " + linkToEvent);
+
+        elem.classList.add("link-shared")
+        setTimeout( () => {
+            elem.classList.remove("link-shared")
+        }, 10000);
+        alert("Link to event page is copied")
+    }
+
+    function saveEvent() {
+        // Getting data for new object
+        var date = $("#day-select").val()
+        console.log("Using to add: " + date)
+        var addInputs = $("#add-object-form").find("input")
+        var addingData = "";
+        console.log(addInputs)
+        for (var i = 0; i < addInputs.length; i++) {
+            addingData += "&" + addInputs[i].placeholder.toLowerCase() + "=" + addInputs[i].value
+        }
+
+        // Sending prepared data for adding new object
+        $.ajax({
+            url: '/api/event/add',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + addingData + "&date=" + date,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+
+    }
+
+    function loadAllParticipationForEachEvent() {
+        // Getting all visitors in database to panel element
+        var eventElements = $(".event-body");
+        Array.from(eventElements).forEach(obj => {
+            console.log(obj);
+            loadAllPossibleVisitors(obj.getAttribute('data-event-id'));
+        })
+    }
+
+    function loadAllPossibleVisitors(eventId) {
+        $.ajax({
+            url: '/api/visitor/all',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token,
+            success: function (result) {
+                console.log(result)
+                let resultObjects = JSON.parse(result);
+                var resultHtml = "";
+                resultObjects.forEach(obj => {
+                    resultHtml += "<tr id='event-" + eventId + "-visitor-" + obj["id"] + "' data-participation-id=''>";
+                    resultHtml += "<td class='hidden'>" + obj["id"] + "</td>";
+                    resultHtml += "<td>" + obj["name"] + "</td>";
+                    resultHtml += "<td>" + obj["surname"] + "</td>";
+                    resultHtml += "<td><button type=\"button\" onclick=\"participationEdit(" + eventId + "," + obj["id"] + ", 'No')\" class=\"button-no btn btn-primary not-selected\">No</button>";
+                    resultHtml += "<button type=\"button\" onclick=\"participationNull(" + eventId + "," + obj["id"] + ")\" class=\"button-null btn btn-default\">Null</button>";
+                    resultHtml += "<button type=\"button\" onclick=\"participationEdit(" + eventId + "," + obj["id"] + ", 'Yes')\" class=\"button-yes btn btn-success not-selected\">Yes</button></td>";
+                    resultHtml += "<script>preciseParticipationStatus(" + eventId + ")<\/script>"
+                    resultHtml += "</tr>";
+                })
+                console.log(resultObjects);
+                $("#objects-list-" + eventId).html(resultHtml);
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    function preciseParticipationStatus(eventId) {
+        $.ajax({
+            url: '/api/event/participation/all',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + "&eventId=" + eventId,
+            success: function (result) {
+                let resultObjects = JSON.parse(result);
+                for (var i = 0; i < resultObjects.length; i++) {
+                    var status = resultObjects[i]['status'];
+                    var visitorId = resultObjects[i]['visitor'];
+
+                    if ((status === "Yes") || (status === "No")) {
+                        let rowForParticipation = document.getElementById("event-" + eventId + "-visitor-" + visitorId)
+                        rowForParticipation.setAttribute('data-participation-id', resultObjects[i]['id'])
+                        rowForParticipation.querySelector("button.button-null").classList.add("not-selected")
+
+                        if (status === "Yes") {
+                            rowForParticipation.querySelector("button.button-yes").classList.remove("not-selected")
+                        } else {
+                            rowForParticipation.querySelector("button.button-no").classList.remove("not-selected")
+                        }
+                    }
+                }
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    function participationEdit(eventId, visitorId, status) {
+        let participationId = document.getElementById("event-" + eventId + "-visitor-" + visitorId).getAttribute('data-participation-id')
+
+        $.ajax({
+            url: '/api/visitor/participation/edit',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + "&eventId=" + eventId + "&visitorId=" + visitorId + "&status=" + status + "&participationId=" + participationId,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    function participationNull(eventId, visitorId) {
+        $.ajax({
+            url: '/api/visitor/participation/delete',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + "&eventId=" + eventId + "&visitorId=" + visitorId,
+            success: function (result) {
+                console.log(result);
+                // updating objects list
+                loadAllObjectsToPage();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    function loadAllObjectsToPage() {
+        let date = $("#day-select").val()
+        $.ajax({
+            url: '/api/event/all',
+            type: 'get',
+            contentType: "application/json",
+            data: "token=" + token + "&date=" + date,
+            success: function (result) {
+                console.log(result)
+                let resultObjects = JSON.parse(result);
+                var resultHtml = "";
+                resultObjects.forEach(obj => {
+                    resultHtml += "<div class=\"panel panel-default\">" +
+                        "            <div class=\"panel-heading event-heading\">" +
+                        "                <h3 class=\"panel-title\"><span>" + obj["name"] + "</span> <span><b>" + obj["time"] + "</b></span></h3>" +
+                        "                <button type=\"button\" class=\"btn btn-default\" onclick=\"copyEventLinkToClipboard(this,'" + date + "','" + obj["id"] + "')\">" +
+                        "                   <span class=\"glyphicon glyphicon-share-alt\" aria-hidden=\"true\"></span> Share" +
+                        "                </button>" +
+                        "            </div>" +
+                        "            <div class=\"panel-body\">" +
+                        "                <div class=\"row\">" +
+                        "                    <div class=\"col-md-6\">" +
+                        "                        <table class=\"table table-striped\">" +
+                        "                            <thead>" +
+                        "                            <tr>" +
+                        "                                <th class=\"hidden\">ID</th>" +
+                        "                                <th>Name</th>" +
+                        "                                <th>Surname</th>" +
+                        "                                <th><b>Participation</b></th>" +
+                        "                            </tr>" +
+                        "                            </thead>" +
+                        "                            <tbody id=\"objects-list-" + obj["id"] + "\" class='event-body' data-event-id=\"" + obj["id"] + "\">" +
+                        "" +
+                        "                            </tbody>" +
+                        "                        </table>" +
+                        "                    </div>" +
+                        "                </div>" +
+                        "            </div>" +
+                        "        </div>";
+                })
+                console.log(resultObjects);
+                $("#load-events-panels").html(resultHtml);
+                loadAllParticipationForEachEvent();
+            },
+            error: function (e) {
+                console.error(e);
+            }
+        });
+    }
+
+    loadAllObjectsToPage();
+</script>

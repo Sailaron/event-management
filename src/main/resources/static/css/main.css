@@ -1,0 +1,17 @@
+.container .flex-column input {
+    margin-bottom: 1em;
+}
+
+.submit-container {
+    display: flex;
+}
+
+.submit-container button {
+    margin: auto 0 auto auto;
+    padding-left: 2em;
+    padding-right: 2em;
+}
+
+.panel .panel-body .row > div {
+    width: 100%;
+}
